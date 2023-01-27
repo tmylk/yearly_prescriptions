@@ -8,6 +8,16 @@ import requests
 
 import modal
 
+from prescription_data import (get_amoxicillin_prescription_data,
+                               get_antibac_prescription_data,
+                               get_antifungal_prescription_data,
+                               get_infection_data,
+                               get_penicillins_prescription_data)
+
+
+graphs = [get_infection_data,  get_antibac_prescription_data, get_penicillins_prescription_data, get_amoxicillin_prescription_data, get_antifungal_prescription_data,]
+
+
 stub = modal.Stub("prescription-data")
 datasette_image = (
     modal.Image.debian_slim()
@@ -170,6 +180,16 @@ def download_and_process_dataset():
     timeout=900,interactive=False
 )
 def prep_db():
+    def read_population_table():
+        import pandas as pd
+        # uploaded with modal volume put prescriptions-dataset-cache-vol pop.csv
+        df = pd.read_csv(os.path.join(CACHE_DIR,'pop.csv'), skiprows=[0,2,3,4,5,6])
+        df['year'] = df.CDID
+        df['population'] = df.ENPOP
+        df = df[['year','population']]
+        df = df.append({'year':2022, 'population':56550138}, ignore_index=True)
+        return df
+
     #import sqlite_utils
     import pandas as pd
     import glob
@@ -187,7 +207,17 @@ def prep_db():
         for parquet_file in glob.glob(f"{AGG_DATA_DIR}/*.parquet"):
             print(parquet_file)
             df = pd.read_parquet(parquet_file)
-            df.to_sql("prescriptions", conn, if_exists='append', index=False)
+#            import IPython
+#           IPython.embed()
+
+            
+            df['year'] = df.month.apply(lambda x: x.year)
+            df_population = read_population_table()
+
+            df_merged = pd.merge(df,df_population,how='inner',left_on=['year'],right_on=['year'])
+
+            
+            df_merged.to_sql("prescriptions", conn, if_exists='append', index=False)
 
         conn.commit()
 
@@ -222,36 +252,78 @@ def download_and_process_dataset_and_db():
 def app():
     from datasette.app import Datasette
 
-    ds = Datasette(files=[DB_PATH])
+    ds = Datasette(files=[DB_PATH], settings = {'sql_time_limit_ms': 3500})
     asyncio.run(ds.invoke_startup())
     return ds.app()
 
 # ## Publishing to the web
 #
-# Run this script using `modal run covid_datasette.py` and it will create the database.
+# Run this script using `modal run prescriptions.py` and it will create the database.
 #
-# You can run this script using `modal serve covid_datasette.py` and it will create a
-# short-lived web URL that exists until you terminate the script.
 #
 # When publishing the interactive Datasette app you'll want to create a persistent URL.
-# This is achieved by deploying the script with `modal deploy covid_datasette.py`.
+# This is achieved by deploying the script with `modal deploy prescriptions.py`.
 
 
-OUTPUT_DIR = "/tmp/prescription"
+@stub.function(
+    image = datasette_image, timeout=60, shared_volumes={CACHE_DIR: volume},
+)
+def extract_specific_codes():
 
-@stub.local_entrypoint
-def run():
 
+    # def add_population_table_to_db(conn):
+    #     df = read_population_table()
+    #     df.to_sql("population", conn, if_exists='replace', index=False)
+
+
+    import sqlite3
+    import pandas as pd
+    conn = sqlite3.connect(DB_PATH )
+    l = []
+    for g in graphs:
+        name, url, condition, filename = g()
+        df = pd.read_sql_query(f"""SELECT month as date, SUM(ITEMS) AS items, 1000*SUM(items)/population AS ItemsPer1000  FROM prescriptions WHERE {condition} GROUP BY month
+        
+        """, conn)
+        #1000*items/pop.Population AS ItemsPer1000,
+        df.to_sql(filename.split('.')[0], conn, if_exists='replace', index=False)
+        l.append((filename, df.copy()))
+    conn.commit()
+    return l
+
+
+
+
+
+
+
+# OUTPUT_DIR = "/tmp/prescription"
+
+# @stub.local_entrypoint
+# def run():
+
+#     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+#     fn = os.path.join(OUTPUT_DIR, "prescription.csv")
+
+#     with stub.run(detach=False):
+#         ## download all
+#         ##  modal run --detach prescriptions.py::stub.download_and_process_dataset_and_db  
+#         # takes about 30 minutes
+#         l = download_and_process_dataset_and_db()
+#         # png_data = create_plot.call()
+#         # with open(fn, "wb") as f:
+#         #     f.write(png_data)
+#         print(f"wrote output to {fn}")
+
+OUTPUT_DIR = "data"
+
+if __name__ == "__main__":
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    fn = os.path.join(OUTPUT_DIR, "prescription.csv")
-
-    with stub.run(detach=False):
-        ## download all
-        ##  modal run --detach prescriptions.py::stub.download_and_process_dataset_and_db  
-        # takes about 30 minutes
-        l = download_and_process_dataset_and_db()
-        # png_data = create_plot.call()
-        # with open(fn, "wb") as f:
-        #     f.write(png_data)
-        print(f"wrote output to {fn}")
+    with stub.run():
+        dfs = extract_specific_codes.call()
+        for filename, df in dfs:
+            fn = os.path.join(OUTPUT_DIR, filename)
+            df.to_csv(fn)
+            print(f"wrote output to {fn}")
