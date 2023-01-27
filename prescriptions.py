@@ -282,10 +282,10 @@ def extract_specific_codes():
     l = []
     for g in graphs:
         name, url, condition, filename = g()
+        df = get
         df = pd.read_sql_query(f"""SELECT month as date, SUM(ITEMS) AS items, 1000*SUM(items)/population AS ItemsPer1000  FROM prescriptions WHERE {condition} GROUP BY month
         
         """, conn)
-        #1000*items/pop.Population AS ItemsPer1000,
         df.to_sql(filename.split('.')[0], conn, if_exists='replace', index=False)
         l.append((filename, df.copy()))
     conn.commit()

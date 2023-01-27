@@ -44,5 +44,5 @@ def get_prescription_data(filename):
     c = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     df['months'] = pd.CategoricalIndex(df.index.strftime('%b'), ordered=True, categories=c)
     df['years'] = df.index.year
-    df_pivoted = df.pivot(index='months', columns='years',values='items')
+    df_pivoted = df.pivot(index='months', columns='years',values='ItemsPer1000')
     return df_pivoted
