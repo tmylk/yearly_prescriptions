@@ -14,9 +14,6 @@ st.title("Prescription trends")
 
 st.header("Prescription data")
 
-st.markdown("source data in https://tmylk--prescription-data-app.modal.run/prescriptions")
-
-st.markdown("source code in https://github.com/tmylk/yearly_prescriptions")
 
 
 
@@ -45,16 +42,19 @@ for g in graphs:
     st.markdown(f"Reference comparison:  {url}")
     st.markdown(f"Database query filter :  {condition}")
 
-st.header("Assumptions")
-
-st.markdown("") 
 
 st.header("Primary Data")
 
-st.markdown("*Prescription* by GP in England.   ")
-
+st.markdown("*Prescriptions* by GP in England. Published by NHS UK. [link](https://www.nhsbsa.nhs.uk/prescription-data/prescribing-data/english-prescribing-data-epd)  ")
 
 st.markdown("*Population* of England. Prescriptions normalised to population using the approach used by [Open Prescribing](https://openprescribing.net/long_term_trends/) from [ONS](https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/populationestimatestimeseriesdataset). Population of England in 2022 is assumed to be 56550138. [(source)](https://populationdata.org.uk/population-of-england/)   ")
+
+st.header("Secondary Data")
+
+st.markdown("The data that the graphs are based on can be browsed here https://tmylk--prescription-data-app.modal.run/prescriptions (built using Datasette framework)")
+
+st.markdown("Code to process primary data is in https://github.com/tmylk/yearly_prescriptions")
+
 
 st.header("Acknowledgements")
 
