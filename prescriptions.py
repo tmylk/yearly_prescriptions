@@ -164,7 +164,7 @@ def download_and_process_one_month(year=2022, month=11):
     image = datasette_image, timeout=86400
 )
 def download_and_process_dataset():
-    inputs = [(year, month) for year in range(2014, 2023) for month in range(1, 13) if (year, month) <= (2022, 11)]
+    inputs = [(year, month) for year in range(2014, 2023) for month in range(1, 13) if (year, month) <= (2022, 12)]
     l = []   
     for r in download_and_process_one_month.starmap(inputs):
         print(r)
@@ -282,7 +282,7 @@ def extract_specific_codes():
     l = []
     for g in graphs:
         name, url, condition, filename = g()
-        df = get
+       
         df = pd.read_sql_query(f"""SELECT month as date, SUM(ITEMS) AS items, 1000*SUM(items)/population AS ItemsPer1000  FROM prescriptions WHERE {condition} GROUP BY month
         
         """, conn)
@@ -294,27 +294,6 @@ def extract_specific_codes():
 
 
 
-
-
-
-# OUTPUT_DIR = "/tmp/prescription"
-
-# @stub.local_entrypoint
-# def run():
-
-#     os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-#     fn = os.path.join(OUTPUT_DIR, "prescription.csv")
-
-#     with stub.run(detach=False):
-#         ## download all
-#         ##  modal run --detach prescriptions.py::stub.download_and_process_dataset_and_db  
-#         # takes about 30 minutes
-#         l = download_and_process_dataset_and_db()
-#         # png_data = create_plot.call()
-#         # with open(fn, "wb") as f:
-#         #     f.write(png_data)
-#         print(f"wrote output to {fn}")
 
 OUTPUT_DIR = "data"
 

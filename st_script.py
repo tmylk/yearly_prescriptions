@@ -45,3 +45,23 @@ for g in graphs:
     st.markdown(f"Reference comparison:  {url}")
     st.markdown(f"Database query filter :  {condition}")
 
+st.header("Assumptions")
+
+st.markdown("") 
+
+st.header("Primary Data")
+
+st.markdown("*Prescription* by GP in England.   ")
+
+
+st.markdown("*Population* of England. Prescriptions normalised to population using the approach used by [Open Prescribing](https://openprescribing.net/long_term_trends/) from [ONS](https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/populationestimatestimeseriesdataset). Population of England in 2022 is assumed to be 56550138. [(source)](https://populationdata.org.uk/population-of-england/)   ")
+
+st.header("Acknowledgements")
+
+st.markdown("Conor Browne for bringing my attention to the Persistent Cyclical Immune Dysregulation idea in this [tweet](https://twitter.com/brownecfm/status/1601526039678943233). ") 
+
+st.markdown("[Open Prescribing](https://openprescribing.net/) for open source population normalisation code") 
+
+st.markdown("NHS Data Hackathon 2016 for introducing me to the prescription data") 
+
+st.markdown("[Modal ](https://modal.com/) platform for making data engineering so easy  ") 
