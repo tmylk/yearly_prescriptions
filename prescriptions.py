@@ -1,22 +1,14 @@
 import asyncio
+import os
 import pathlib
 import shutil
 import tempfile
 from datetime import datetime, timedelta
-import os
-import requests
 
 import modal
+import requests
 
-from prescription_data import (get_amoxicillin_prescription_data,
-                               get_antibac_prescription_data,
-                               get_antifungal_prescription_data,
-                               get_infection_data,
-                               get_penicillins_prescription_data)
-
-
-graphs = [get_infection_data,  get_antibac_prescription_data, get_penicillins_prescription_data, get_amoxicillin_prescription_data, get_antifungal_prescription_data,]
-
+from prescription_data import get_graphs
 
 stub = modal.Stub("prescription-data")
 datasette_image = (
@@ -27,7 +19,7 @@ datasette_image = (
         "GitPython",
         "sqlite-utils",
         "requests", 
-        "duckdb", "pandas", "sqlalchemy", "pyarrow"
+        "duckdb", "pandas", "sqlalchemy", "pyarrow", "sqlite-sqlean"
     )
     
 )
@@ -164,7 +156,7 @@ def download_and_process_one_month(year=2022, month=11):
     image = datasette_image, timeout=86400
 )
 def download_and_process_dataset():
-    inputs = [(year, month) for year in range(2014, 2023) for month in range(1, 13) if (year, month) <= (2022, 12)]
+    inputs = [(year, month) for year in range(2014, 2024) for month in range(1, 13) if (year, month) <= (2023, 1)]
     l = []   
     for r in download_and_process_one_month.starmap(inputs):
         print(r)
@@ -182,18 +174,21 @@ def download_and_process_dataset():
 def prep_db():
     def read_population_table():
         import pandas as pd
+
         # uploaded with modal volume put prescriptions-dataset-cache-vol pop.csv
         df = pd.read_csv(os.path.join(CACHE_DIR,'pop.csv'), skiprows=[0,2,3,4,5,6])
         df['year'] = df.CDID
         df['population'] = df.ENPOP
         df = df[['year','population']]
         df = df.append({'year':2022, 'population':56550138}, ignore_index=True)
+        df = df.append({'year':2023, 'population':56550138}, ignore_index=True)
         return df
 
     #import sqlite_utils
-    import pandas as pd
     import glob
     import sqlite3
+
+    import pandas as pd
     from flufl.lock import Lock
 
     print("Loading all months")
@@ -277,11 +272,15 @@ def extract_specific_codes():
 
 
     import sqlite3
+
     import pandas as pd
+    import sqlite_sqlean
     conn = sqlite3.connect(DB_PATH )
+    conn.enable_load_extension(True)
+    
+    sqlite_sqlean.load(conn, 'regexp')
     l = []
-    for g in graphs:
-        name, url, condition, filename = g()
+    for name, url, condition, filename in get_graphs():
        
         df = pd.read_sql_query(f"""SELECT month as date, SUM(ITEMS) AS items, 1000*SUM(items)/population AS ItemsPer1000  FROM prescriptions WHERE {condition} GROUP BY month
         
