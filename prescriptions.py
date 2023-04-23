@@ -156,7 +156,7 @@ def download_and_process_one_month(year=2022, month=11):
     image = datasette_image, timeout=86400
 )
 def download_and_process_dataset():
-    inputs = [(year, month) for year in range(2014, 2024) for month in range(1, 13) if (year, month) <= (2023, 1)]
+    inputs = [(year, month) for year in range(2014, 2024) for month in range(1, 13) if (year, month) <= (2023, 2)]
     l = []   
     for r in download_and_process_one_month.starmap(inputs):
         print(r)
@@ -180,8 +180,9 @@ def prep_db():
         df['year'] = df.CDID
         df['population'] = df.ENPOP
         df = df[['year','population']]
-        df = df.append({'year':2022, 'population':56550138}, ignore_index=True)
-        df = df.append({'year':2023, 'population':56550138}, ignore_index=True)
+        new_rows =  pd.DataFrame([{'year':2022, 'population':56550138},{'year':2023, 'population':56550138}])
+        df = pd.concat([df,new_rows], ignore_index=True)
+        
         return df
 
     #import sqlite_utils
